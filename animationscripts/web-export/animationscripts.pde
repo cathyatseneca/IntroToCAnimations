@@ -436,11 +436,42 @@ class FlowChart extends AnimationObject{
 
 };
 class TimeEvent{
+  float time_;    //time event should occur in seconds since start of program
+  AnimationObject updateObject_;
+  int param_;
+  
 };
+class TimeLine{
+  TimeEvent [] events_;
+  int numEvents_;
+  TimeLine(){
+    events_=new TimeEvent[60];
+    numEvents_=0;
+  }
+  void addEvent(TimeEvent e){
+    if(numEvents_ < 60){
+      events_[numEvents_]=e;
+      numEvents_++;
+    }
+  }
+  void sort(){
+    TimeEvent curr;
+    int i,j;
+    for(i=1;i<numEvents_;i++){
+      curr=events_[i];
+      for(j=i;j>0 && events_[j-1] > curr;j--){
+        events_[j]=events_[j-1];
+      }
+      events_[j]=curr;
+    }
+  }
+};
+
 class Coordinator{
   Code main_;
   Output outWindow_;
   FlowChart chart_;
+   
 };
 void setup(){
    size(1200,700);
@@ -504,7 +535,5 @@ void draw(){
     }*/
     outWindow.draw();
     chart.draw();
-//    drawTextBox("abc",100,100,24,color(0,0,255),color(255,255,255));
-//    drawTextDiamond("abcdefg",100,100,24,color(0,0,255),color(255,255,255));
 }
 

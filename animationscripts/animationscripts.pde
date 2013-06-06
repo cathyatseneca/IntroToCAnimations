@@ -42,7 +42,7 @@ class Code extends AnimationObject{
     x_=x;
     y_=y;
   }
-  void setHighlight(int line){
+  void update(int line){
     highlight_=line;
   }
   void add(String line){
@@ -130,6 +130,12 @@ class Output extends AnimationObject{
     if(idx >=0 && idx < numLines_){
       code_[idx];
     }
+  }
+  void update(int nl){
+    numLines_=nl;
+  }
+  void update(String s,int nl){
+    add(s,nl);
   }
   void setFontSize(int sz){
     fontsize_=sz;
@@ -350,7 +356,7 @@ class FlowChart extends AnimationObject{
   void setFontSize(int sz){
     fontSize_=sz;
   }
-  void startAnimation(){
+  void update(){
     highlighterNext_=1;
     highlighterState_=1;
     highlighterX_=chart_[1].x()-chart_[0].x();
@@ -436,60 +442,134 @@ class FlowChart extends AnimationObject{
 
 };
 class TimeEvent{
+  float time_;    //time event should occur in seconds since start of program
+  AnimationObject updateObject_;  
+  TimeEvent(float t,AnimationObject ao){
+    updateObject_=ao;
+  }
+  void update(){
+    updateObject_.update();
+  }
 };
+class UpdateStringEvent extends TimeEvent{
+   String param_;
+   UpdateStringEvent(float t, AnimationObject ao, String p){
+     super(t,ao);
+     param_=p;
+   }
+  void update(){
+    updateObject_.update(param_);
+  }
+}
+class UpdateIntEvent extends TimeEvent{
+   int param_;
+   UpdateIntEvent(float t, AnimationObject ao, int p){
+     super(t,ao);
+     param_=p;
+   }
+   void update(){
+    updateObject_.update(param_);
+  }
+
+}
+class UpdateStringIntEvent extends TimeEvent{
+   String sParam_;
+   int iParam_;
+   UpdateIntEvent(float t, AnimationObject ao,  String sp,int ip){
+     super(t,ao);
+     sParam_=sp;
+     iParam_=ip;
+   }
+   void update(){
+     updateObject_.update(sParam,iParam);
+   }
+}
+class TimeLine{
+  TimeEvent [] events_;
+  int numEvents_;
+  int currEvent_;
+  int started_;
+  
+  TimeLine(){
+    events_=new TimeEvent[60];
+    numEvents_=0;
+  }
+  void addEvent(TimeEvent e){
+    if(numEvents_ < 60){
+      events_[numEvents_]=e;
+      numEvents_++;
+    }
+  }
+  void sort(){
+    TimeEvent curr;
+    int i,j;
+    for(i=1;i<numEvents_;i++){
+      curr=events_[i];
+      for(j=i;j>0 && events_[j-1].time_ > curr.time_;j--){
+        events_[j]=events_[j-1];
+      }
+      events_[j]=curr;
+    }
+  }
+};
+
 class Coordinator{
   Code main_;
   Output outWindow_;
   FlowChart chart_;
+
+  Coordinator(){
+    main_ =new Code();
+    main_.add("int main(void){");
+    main_.add("  int x = 10;");
+    main_.add("  printf(\"start\");");
+    main_.add("  if(x > 0){");
+    main_.add("    printf(\"positive\");");
+    main_.add("  }");
+    main_.add("  printf(\"all done\");");
+    main_.add("  return 0;");
+    main_.add("}");
+    lineNumber=1;
+    main_.setFontSize(20);
+    outWindow_=new Output();
+    outWindow_.setFontSize(20);
+    chart_=new FlowChart();
+    chart_.addNode(200,100);  //0
+    chart_.addNode(200,175,1,"printf(\"start\");");
+    chart_.addNode(200,300,2,"x > 0");
+    chart_.addNode(450,300);  //3
+    chart_.addNode(450,375,1,"printf(\"positive\");");
+    chart_.addNode(450,450); //5
+    chart_.addNode(200,450); //6
+    chart_.addNode(200,525,1,"printf(\"alldone\");");
+    chart_.addNode(200,600); //8
+    chart_.addLink(0,1);
+    chart_.addLink(1,2);
+    chart_.addLink(2,3,100,-20,"true");
+    chart_.addLink(3,4);
+    chart_.addLink(4,5);
+    chart_.addLink(5,6);
+    chart_.addLink(2,6,10,50,"false");
+    chart_.addLink(6,7);
+    chart_.addLink(7,8);
+    chart_.addPath(0); 
+    chart_.addPath(1); 
+    chart_.addPath(2); 
+    chart_.addPath(3); 
+    chart_.addPath(4); 
+    chart_.addPath(5); 
+    chart_.addPath(6); 
+    chart_.addPath(7);
+    chart_.addPath(8);  
+  }   
 };
 void setup(){
    size(1200,700);
    background(255,255,255);
    codeFont=createFont("monospace");
    flowchartFont=createFont("sans-serif");
-   main =new Code();
-   main.add("int main(void){");
-   main.add("  int x = 10;");
-   main.add("  printf(\"start\");");
-   main.add("  if(x > 0){");
-   main.add("    printf(\"positive\");");
-   main.add("  }");
-   main.add("  printf(\"all done\");");
-   main.add("  return 0;");
-   main.add("}");
-  lineNumber=1;
-  main.setFontSize(20);
-  outWindow=new Output();
-  outWindow.setFontSize(20);
-  chart=new FlowChart();
-  stepPauseTime = 4000;
-  chart.addNode(200,100);  //0
-  chart.addNode(200,175,1,"printf(\"start\");");
-  chart.addNode(200,300,2,"x > 0");
-  chart.addNode(450,300);  //3
-  chart.addNode(450,375,1,"printf(\"positive\");");
-  chart.addNode(450,450); //5
-  chart.addNode(200,450); //6
-  chart.addNode(200,525,1,"printf(\"alldone\");");
-  chart.addNode(200,600); //8
-  chart.addLink(0,1);
-  chart.addLink(1,2);
-  chart.addLink(2,3,100,-20,"true");
-  chart.addLink(3,4);
-  chart.addLink(4,5);
-  chart.addLink(5,6);
-  chart.addLink(2,6,10,50,"false");
-  chart.addLink(6,7);
-  chart.addLink(7,8);
-  chart.addPath(0); 
-  chart.addPath(1); 
-  chart.addPath(2); 
-  chart.addPath(3); 
-  chart.addPath(4); 
-  chart.addPath(5); 
-  chart.addPath(6); 
-  chart.addPath(7);
-  chart.addPath(8);
+   stepPauseTime = 4000;
+
   velocity=0.5;
   //frameRate(1);
 }
@@ -504,6 +584,4 @@ void draw(){
     }*/
     outWindow.draw();
     chart.draw();
-//    drawTextBox("abc",100,100,24,color(0,0,255),color(255,255,255));
-//    drawTextDiamond("abcdefg",100,100,24,color(0,0,255),color(255,255,255));
 }
